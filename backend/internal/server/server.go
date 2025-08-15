@@ -62,6 +62,11 @@ func (s *Server) registerRoutes() {
 		learningRepo := repositories.NewLearningRepository(s.db)
 		learningHandler := handlers.NewLearningHandler(learningRepo, userRepo) // Gunakan userRepo yang sudah ada
 		authRoutes.GET("/roadmap", learningHandler.GetMyRoadmap)
+	
+		// RUTE PROGRESS BARU
+		progressRepo := repositories.NewProgressRepository(s.db)
+		progressHandler := handlers.NewProgressHandler(progressRepo)
+		authRoutes.POST("/progress/resource/:resource_id", progressHandler.MarkAsComplete)
 	}
 }
 
