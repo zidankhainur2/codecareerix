@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strings"
 
@@ -131,4 +132,29 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 
 	// 4. Kirim data pengguna sebagai respons
 	c.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) SelectCareerPath(c *gin.Context) {
+	var input models.SelectCareerPathInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userIDString, _ := c.Get("userID")
+	userID, err := uuid.Parse(userIDString.(string))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "ID pengguna tidak valid"})
+		return
+	}
+
+	// Panggil repository untuk update data pengguna
+	err = h.repo.UpdateActiveCareerPath(userID, input.CareerPathID)
+	if err != nil {
+		log.Printf("Gagal memilih jalur karier untuk user %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memilih jalur karier"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Jalur karier berhasil dipilih"})
 }

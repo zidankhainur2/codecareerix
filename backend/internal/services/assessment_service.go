@@ -1,6 +1,8 @@
 package services
 
 import (
+	"log"
+
 	"github.com/google/uuid"
 	"github.com/zidankhainur2/codecareerix/backend/internal/models"
 	"github.com/zidankhainur2/codecareerix/backend/internal/repositories"
@@ -27,6 +29,15 @@ func (s *AssessmentService) ProcessAssessmentSubmission(userID uuid.UUID, answer
 	if err != nil {
 		return nil, err
 	}
+
+	// Langkah 3 (BARU): Simpan hasil rekomendasi ke database
+	// Kita lakukan ini di go routine agar tidak memblokir respons ke user
+	go func() {
+		err := s.repo.SaveRecommendations(assessmentID, userID, recommendations)
+		if err != nil {
+			log.Printf("Gagal menyimpan rekomendasi untuk user %s: %v", userID, err)
+		}
+	}()
 
 	// Ambil hanya 3 teratas sesuai brief proyek
 	if len(recommendations) > 3 {

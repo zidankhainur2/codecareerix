@@ -49,14 +49,19 @@ func (s *Server) registerRoutes() {
 	{
 		// Rute User terproteksi
 		authRoutes.GET("/users/profile", userHandler.GetProfile)
+		authRoutes.POST("/users/career-path", userHandler.SelectCareerPath)
 
 		// Rute Asesmen terproteksi
 		assessmentRepo := repositories.NewAssessmentRepository(s.db)
-		assessmentService := services.NewAssessmentService(assessmentRepo) // Buat service
-		assessmentHandler := handlers.NewAssessmentHandler(assessmentRepo, assessmentService) // Berikan repo dan service
-
+		assessmentService := services.NewAssessmentService(assessmentRepo)
+		assessmentHandler := handlers.NewAssessmentHandler(assessmentRepo, assessmentService)
 		authRoutes.GET("/assessments", assessmentHandler.GetAssessmentQuestions)
 		authRoutes.POST("/assessments/submit", assessmentHandler.SubmitAssessment)
+
+		// RUTE LEARNING/ROADMAP BARU
+		learningRepo := repositories.NewLearningRepository(s.db)
+		learningHandler := handlers.NewLearningHandler(learningRepo, userRepo) // Gunakan userRepo yang sudah ada
+		authRoutes.GET("/roadmap", learningHandler.GetMyRoadmap)
 	}
 }
 

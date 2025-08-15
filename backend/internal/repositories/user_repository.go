@@ -64,7 +64,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 
 func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 	query := `
-		SELECT id, full_name, email, password_hash, profile_picture_url, created_at, updated_at
+		SELECT id, full_name, email, password_hash, profile_picture_url, active_career_path_id, created_at, updated_at
 		FROM users
 		WHERE id = $1`
 
@@ -75,6 +75,7 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 		&user.Email,
 		&user.PasswordHash,
 		&user.ProfilePictureURL,
+		&user.ActiveCareerPathID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -84,4 +85,14 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+func (r *UserRepository) UpdateActiveCareerPath(userID uuid.UUID, careerPathID int) error {
+	query := `
+		UPDATE users
+		SET active_career_path_id = $1, updated_at = now()
+		WHERE id = $2`
+
+	_, err := r.db.Exec(query, careerPathID, userID)
+	return err
 }

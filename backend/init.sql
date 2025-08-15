@@ -6,6 +6,7 @@ CREATE TABLE "users" (
   "email" VARCHAR(255) UNIQUE NOT NULL,
   "password_hash" TEXT NOT NULL,
   "profile_picture_url" TEXT,
+  "active_career_path_id" INTEGER REFERENCES "career_paths"("id") ON DELETE SET NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
 );

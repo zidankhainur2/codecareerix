@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/zidankhainur2/codecareerix/backend/internal/models"
@@ -139,4 +140,19 @@ func (r *AssessmentRepository) CalculateScores(assessmentID uuid.UUID) ([]models
 	}
 
 	return recommendations, nil
+}
+
+func (r *AssessmentRepository) SaveRecommendations(assessmentID uuid.UUID, userID uuid.UUID, recommendations []models.CareerRecommendation) error {
+	// Konversi slice of structs ke JSONB
+	recJSON, err := json.Marshal(recommendations)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		INSERT INTO user_career_recommendations (user_assessment_id, user_id, recommendations)
+		VALUES ($1, $2, $3)`
+
+	_, err = r.db.Exec(query, assessmentID, userID, recJSON)
+	return err
 }

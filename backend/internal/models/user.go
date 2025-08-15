@@ -8,15 +8,15 @@ import (
 
 // User merepresentasikan struktur data di tabel 'users'
 type User struct {
-	ID                uuid.UUID `json:"id"`
-	FullName          string    `json:"full_name"`
-	Email             string    `json:"email"`
-	PasswordHash      string    `json:"-"` // Tanda '-' artinya jangan pernah kirim field ini dalam response JSON
-	ProfilePictureURL string    `json:"profile_picture_url"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                 uuid.UUID `json:"id"`
+	FullName           string    `json:"full_name"`
+	Email              string    `json:"email"`
+	PasswordHash       string    `json:"-"`
+	ProfilePictureURL  string    `json:"profile_picture_url"`
+	ActiveCareerPathID *int      `json:"active_career_path_id"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
-
 // RegisterUserInput adalah struct untuk validasi input dari request registrasi
 type RegisterUserInput struct {
 	FullName string `json:"full_name" binding:"required"`
@@ -27,4 +27,8 @@ type RegisterUserInput struct {
 type LoginUserInput struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+}
+
+type SelectCareerPathInput struct {
+	CareerPathID int `json:"career_path_id" binding:"required,gt=0"`
 }
