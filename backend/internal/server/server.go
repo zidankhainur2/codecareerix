@@ -3,23 +3,21 @@ package server
 import (
 	"database/sql"
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/zidankhainur2/codecareerix/backend/internal/auth"
 	"github.com/zidankhainur2/codecareerix/backend/internal/config"
 	"github.com/zidankhainur2/codecareerix/backend/internal/handlers"
 	"github.com/zidankhainur2/codecareerix/backend/internal/repositories"
 )
 
-// Server adalah struct untuk server HTTP kita.
 type Server struct {
 	router *gin.Engine
 	db     *sql.DB
 	cfg    *config.Config
 }
 
-// New membuat instance Server baru.
-func New(db *sql.DB) *Server {
+func New(db *sql.DB, cfg *config.Config) *Server {
 	router := gin.Default()
 	s := &Server{
 		router: router,
@@ -30,28 +28,30 @@ func New(db *sql.DB) *Server {
 	return s
 }
 
-// registerRoutes mendaftarkan semua rute untuk aplikasi.
 func (s *Server) registerRoutes() {
-	// Rute root
-	s.router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Selamat datang di CodeCareerix API!"})
-	})
-
-	// Membuat instance health handler dan mendaftarkan rutenya
+	// --- RUTE PUBLIK (Tidak butuh login) ---
+	s.router.GET("/", func(c *gin.Context) { /* ... */ })
 	healthHandler := handlers.NewHealthHandler(s.db)
 	s.router.GET("/health", healthHandler.Check)
 
-	// --- RUTE PENGGUNA ---
 	userRepo := repositories.NewUserRepository(s.db)
-	// Teruskan JWT secret dari config ke handler
 	userHandler := handlers.NewUserHandler(userRepo, s.cfg.JWTSecret)
-
 	s.router.POST("/users/register", userHandler.Register)
-	s.router.POST("/users/login", userHandler.Login) // Daftarkan rute baru
+	s.router.POST("/users/login", userHandler.Login)
+
+	// --- RUTE TERPROTEKSI (Butuh login) ---
+	// Buat grup baru untuk rute yang membutuhkan otentikasi
+	authRoutes := s.router.Group("/")
+	authRoutes.Use(auth.AuthMiddleware(s.cfg.JWTSecret))
+	{
+		// Semua rute di dalam blok ini akan dilindungi oleh middleware
+		authRoutes.GET("/users/profile", userHandler.GetProfile)
+		// Tambahkan rute terproteksi lainnya di sini...
+	}
 }
 
 // Run menjalankan server HTTP pada port yang diberikan.
 func (s *Server) Run(port string) error {
-	log.Printf("Server berjalan di http://localhost:%s\n", port)
+	log.Printf("🚀 Server berjalan di http://localhost:%s\n", port)
 	return s.router.Run(":" + port)
 }

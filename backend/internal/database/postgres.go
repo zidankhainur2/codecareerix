@@ -4,34 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// Connect membuat dan memverifikasi koneksi ke database PostgreSQL
-func Connect() (*sql.DB, error) {
-	// Ambil konfigurasi dari environment variables
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
-
-	if dbUser == "" || dbPassword == "" || dbHost == "" || dbPort == "" || dbName == "" {
-		log.Fatal("Environment variables DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME harus di-set")
-	}
-
-	// Format DSN untuk driver pgx
-	dsn := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s",
-		dbUser,
-		dbPassword,
-		dbHost,
-		dbPort,
-		dbName,
-	)
-
+// Connect membuat dan memverifikasi koneksi ke database menggunakan DSN yang diberikan.
+func Connect(dsn string) (*sql.DB, error) {
 	// Buka koneksi
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

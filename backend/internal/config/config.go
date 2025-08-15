@@ -1,20 +1,60 @@
 package config
 
-// Config menampung semua konfigurasi aplikasi.
-// Nantinya ini bisa dibaca dari file .env atau environment variables.
+import (
+	"fmt"
+	"os"
+)
+
+// Config menampung semua konfigurasi aplikasi yang dimuat dari environment.
 type Config struct {
-	Port string
-	DB   struct {
+	Port      string
+	JWTSecret string
+	DB        struct {
 		DSN string // Data Source Name
 	}
-	JWTSecret string
 }
 
-// New mengembalikan instance konfigurasi dengan nilai default.
-func New() *Config {
-	cfg := &Config{}
-	cfg.Port = "8080"
-	cfg.DB.DSN = "postgres://user:password@localhost:5432/codecareerix_db?sslmode=disable"
-	cfg.JWTSecret = "c80c86cf88c3deea1bab18e46cb97a1a00205a70c832e56044b6704c59e5eb70"
-	return cfg
+// New memuat konfigurasi dari environment variables dan mengembalikannya.
+func New() (*Config, error) {
+	// Ambil port, berikan nilai default "8080" jika tidak ada
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// Ambil JWT Secret, ini wajib ada
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return nil, fmt.Errorf("environment variable JWT_SECRET tidak boleh kosong")
+	}
+
+	// Ambil konfigurasi database dari environment
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	// Pastikan semua variabel database ada
+	if dbUser == "" || dbPassword == "" || dbHost == "" || dbPort == "" || dbName == "" {
+		return nil, fmt.Errorf("semua environment variable database (DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME) harus di-set")
+	}
+
+	// Buat DSN (Data Source Name)
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		dbUser,
+		dbPassword,
+		dbHost,
+		dbPort,
+		dbName,
+	)
+
+	// Buat dan kembalikan struct Config
+	cfg := &Config{
+		Port:      port,
+		JWTSecret: jwtSecret,
+	}
+	cfg.DB.DSN = dsn
+
+	return cfg, nil
 }

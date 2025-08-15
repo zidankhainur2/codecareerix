@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/zidankhainur2/codecareerix/backend/internal/models" // Ganti dengan path modul Anda
 )
 
@@ -56,6 +57,30 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 
 	if err != nil {
 		return nil, err // Akan mengembalikan sql.ErrNoRows jika tidak ditemukan
+	}
+
+	return &user, nil
+}
+
+func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
+	query := `
+		SELECT id, full_name, email, password_hash, profile_picture_url, created_at, updated_at
+		FROM users
+		WHERE id = $1`
+
+	var user models.User
+	err := r.db.QueryRow(query, id).Scan(
+		&user.ID,
+		&user.FullName,
+		&user.Email,
+		&user.PasswordHash,
+		&user.ProfilePictureURL,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return &user, nil

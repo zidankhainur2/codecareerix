@@ -3,24 +3,30 @@ package main
 import (
 	"log"
 
-	"github.com/zidankhainur2/codecareerix/backend/internal/config"   // Ganti dengan path modul Anda
-	"github.com/zidankhainur2/codecareerix/backend/internal/database" // Ganti dengan path modul Anda
-	"github.com/zidankhainur2/codecareerix/backend/internal/server"   // Ganti dengan path modul Anda
+	"github.com/joho/godotenv"
+	"github.com/zidankhainur2/codecareerix/backend/internal/config"
+	"github.com/zidankhainur2/codecareerix/backend/internal/database"
+	"github.com/zidankhainur2/codecareerix/backend/internal/server"
 )
 
 func main() {
-	// 1. Muat Konfigurasi
-	cfg := config.New()
 
-	// 2. Hubungkan ke Database
-	db, err := database.Connect()
-if err != nil {
-	log.Fatalf("Database error: %v", err)
-}
-defer db.Close()
+	 _ = godotenv.Load()
+	// 1. Muat Konfigurasi dari Environment
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatalf("Gagal memuat konfigurasi: %v", err)
+	}
+
+	// 2. Hubungkan ke Database menggunakan DSN dari config
+	db, err := database.Connect(cfg.DB.DSN)
+	if err != nil {
+		log.Fatalf("Gagal terhubung ke database: %v", err)
+	}
+	defer db.Close()
 
 	// 3. Buat dan Jalankan Server
-	srv := server.New(db, cfg) // Perbarui baris ini
+	srv := server.New(db, cfg)
 	if err := srv.Run(cfg.Port); err != nil {
 		log.Fatalf("Gagal menjalankan server: %v", err)
 	}

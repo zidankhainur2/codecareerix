@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/zidankhainur2/codecareerix/backend/internal/auth"
 	"github.com/zidankhainur2/codecareerix/backend/internal/models"       // Ganti dengan path modul Anda
@@ -100,4 +101,34 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	// 5. Kirim Respons Sukses
 	c.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func (h *UserHandler) GetProfile(c *gin.Context) {
+	// 1. Ambil userID dari context yang di-set oleh middleware
+	userIDString, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Pengguna tidak terotentikasi"})
+		return
+	}
+
+	// 2. Konversi userID ke tipe UUID
+	userID, err := uuid.Parse(userIDString.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID pengguna tidak valid"})
+		return
+	}
+
+	// 3. Panggil repository untuk mendapatkan data pengguna
+	user, err := h.repo.GetByID(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil profil"})
+		return
+	}
+
+	// 4. Kirim data pengguna sebagai respons
+	c.JSON(http.StatusOK, user)
 }
