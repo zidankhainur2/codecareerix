@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zidankhainur2/codecareerix/backend/internal/auth"
@@ -30,7 +31,9 @@ func New(db *sql.DB, cfg *config.Config) *Server {
 
 func (s *Server) registerRoutes() {
 	// --- RUTE PUBLIK (Tidak butuh login) ---
-	s.router.GET("/", func(c *gin.Context) { /* ... */ })
+	s.router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Selamat datang di CodeCareerix API!"})
+	})
 	healthHandler := handlers.NewHealthHandler(s.db)
 	s.router.GET("/health", healthHandler.Check)
 
