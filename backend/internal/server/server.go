@@ -53,6 +53,7 @@ func (s *Server) registerRoutes() {
 		assessmentRepo := repositories.NewAssessmentRepository(s.db)
 		assessmentHandler := handlers.NewAssessmentHandler(assessmentRepo)
 		authRoutes.GET("/assessments", assessmentHandler.GetAssessmentQuestions)
+		authRoutes.POST("/assessments/submit", assessmentHandler.SubmitAssessment)
 	}
 }
 

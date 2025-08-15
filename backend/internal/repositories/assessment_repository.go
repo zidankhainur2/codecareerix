@@ -1,8 +1,10 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 
+	"github.com/google/uuid"
 	"github.com/zidankhainur2/codecareerix/backend/internal/models"
 )
 
@@ -65,4 +67,47 @@ func (r *AssessmentRepository) GetAllQuestionsWithOptions() ([]models.Assessment
 	}
 
 	return result, nil
+}
+
+func (r *AssessmentRepository) SubmitAnswers(userID uuid.UUID, answers []models.UserAnswer) error {
+	// Memulai transaksi
+	tx, err := r.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	// Defer a rollback in case of error.
+	// Commit will be called explicitly on success.
+	defer tx.Rollback()
+
+	// 1. Buat record di tabel user_assessments
+	var assessmentID uuid.UUID
+	queryCreateAssessment := `
+		INSERT INTO user_assessments (user_id, status, completed_at)
+		VALUES ($1, 'completed', now())
+		RETURNING id`
+	
+	err = tx.QueryRow(queryCreateAssessment, userID).Scan(&assessmentID)
+	if err != nil {
+		return err
+	}
+
+	// 2. Siapkan statement untuk menyisipkan banyak jawaban (lebih efisien)
+	stmt, err := tx.Prepare(`
+		INSERT INTO user_assessment_answers (user_assessment_id, question_id, option_id)
+		VALUES ($1, $2, $3)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	// 3. Loop melalui setiap jawaban dan sisipkan ke database
+	for _, answer := range answers {
+		_, err := stmt.Exec(assessmentID, answer.QuestionID, answer.OptionID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 4. Jika semua berhasil, commit transaksi
+	return tx.Commit()
 }

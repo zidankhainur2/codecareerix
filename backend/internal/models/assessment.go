@@ -14,3 +14,12 @@ type AssessmentQuestion struct {
 	QuestionType string             `json:"question_type"`
 	Options      []AssessmentOption `json:"options"`
 }
+
+type UserAnswer struct {
+	QuestionID int `json:"question_id" binding:"required"`
+	OptionID   int `json:"option_id" binding:"required"`
+}
+
+type SubmitAssessmentInput struct {
+	Answers []UserAnswer `json:"answers" binding:"required,dive"`
+}
