@@ -43,13 +43,16 @@ func (s *Server) registerRoutes() {
 	s.router.POST("/users/login", userHandler.Login)
 
 	// --- RUTE TERPROTEKSI (Butuh login) ---
-	// Buat grup baru untuk rute yang membutuhkan otentikasi
 	authRoutes := s.router.Group("/")
 	authRoutes.Use(auth.AuthMiddleware(s.cfg.JWTSecret))
 	{
-		// Semua rute di dalam blok ini akan dilindungi oleh middleware
+		// Rute User terproteksi
 		authRoutes.GET("/users/profile", userHandler.GetProfile)
-		// Tambahkan rute terproteksi lainnya di sini...
+		
+		// Rute Asesmen terproteksi
+		assessmentRepo := repositories.NewAssessmentRepository(s.db)
+		assessmentHandler := handlers.NewAssessmentHandler(assessmentRepo)
+		authRoutes.GET("/assessments", assessmentHandler.GetAssessmentQuestions)
 	}
 }
 
