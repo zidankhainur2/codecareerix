@@ -67,6 +67,17 @@ func (s *Server) registerRoutes() {
 		progressRepo := repositories.NewProgressRepository(s.db)
 		progressHandler := handlers.NewProgressHandler(progressRepo)
 		authRoutes.POST("/progress/resource/:resource_id", progressHandler.MarkAsComplete)
+	
+		// RUTE PORTFOLIO BARU
+		portfolioRepo := repositories.NewPortfolioRepository(s.db)
+		portfolioHandler := handlers.NewPortfolioHandler(portfolioRepo)
+		authRoutes.POST("/portfolio/projects", portfolioHandler.CreateProject)
+		authRoutes.GET("/portfolio/projects", portfolioHandler.GetMyProjects)
+	
+		// RUTE LOWONGAN KERJA BARU
+		jobRepo := repositories.NewJobRepository(s.db)
+		jobHandler := handlers.NewJobHandler(jobRepo)
+		authRoutes.GET("/jobs", jobHandler.GetAllJobs)
 	}
 }
 
