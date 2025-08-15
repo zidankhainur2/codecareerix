@@ -18,7 +18,6 @@ func NewAssessmentRepository(db *sql.DB) *AssessmentRepository {
 
 // GetAllQuestionsWithOptions mengambil semua pertanyaan beserta pilihan jawabannya.
 func (r *AssessmentRepository) GetAllQuestionsWithOptions() ([]models.AssessmentQuestion, error) {
-	// Query untuk mengambil semua pertanyaan
 	queryQuestions := `SELECT id, question_text, question_type FROM assessment_questions ORDER BY id`
 	rows, err := r.db.Query(queryQuestions)
 	if err != nil {
@@ -26,7 +25,6 @@ func (r *AssessmentRepository) GetAllQuestionsWithOptions() ([]models.Assessment
 	}
 	defer rows.Close()
 
-	// Gunakan map untuk menyusun pertanyaan agar mudah dicari
 	questionsMap := make(map[int]*models.AssessmentQuestion)
 	var questionsList []*models.AssessmentQuestion
 
@@ -35,12 +33,11 @@ func (r *AssessmentRepository) GetAllQuestionsWithOptions() ([]models.Assessment
 		if err := rows.Scan(&q.ID, &q.QuestionText, &q.QuestionType); err != nil {
 			return nil, err
 		}
-		q.Options = []models.AssessmentOption{} // Inisialisasi slice options
+		q.Options = []models.AssessmentOption{}
 		questionsMap[q.ID] = &q
 		questionsList = append(questionsList, &q)
 	}
 
-	// Query untuk mengambil semua pilihan jawaban
 	queryOptions := `SELECT id, question_id, option_text FROM assessment_options ORDER BY id`
 	rowsOptions, err := r.db.Query(queryOptions)
 	if err != nil {
@@ -54,13 +51,11 @@ func (r *AssessmentRepository) GetAllQuestionsWithOptions() ([]models.Assessment
 			return nil, err
 		}
 
-		// Jika pertanyaan untuk opsi ini ada di map, tambahkan opsi ke pertanyaan tersebut
 		if question, found := questionsMap[opt.QuestionID]; found {
 			question.Options = append(question.Options, opt)
 		}
 	}
 
-	// Konversi dari slice of pointers ke slice of values
 	var result []models.AssessmentQuestion
 	for _, q := range questionsList {
 		result = append(result, *q)
@@ -69,45 +64,79 @@ func (r *AssessmentRepository) GetAllQuestionsWithOptions() ([]models.Assessment
 	return result, nil
 }
 
-func (r *AssessmentRepository) SubmitAnswers(userID uuid.UUID, answers []models.UserAnswer) error {
-	// Memulai transaksi
+// SubmitAnswers menyimpan jawaban asesmen dan mengembalikan ID asesmen yang baru.
+func (r *AssessmentRepository) SubmitAnswers(userID uuid.UUID, answers []models.UserAnswer) (uuid.UUID, error) {
 	tx, err := r.db.BeginTx(context.Background(), nil)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
-	// Defer a rollback in case of error.
-	// Commit will be called explicitly on success.
 	defer tx.Rollback()
 
-	// 1. Buat record di tabel user_assessments
 	var assessmentID uuid.UUID
 	queryCreateAssessment := `
 		INSERT INTO user_assessments (user_id, status, completed_at)
 		VALUES ($1, 'completed', now())
 		RETURNING id`
-	
+
 	err = tx.QueryRow(queryCreateAssessment, userID).Scan(&assessmentID)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 
-	// 2. Siapkan statement untuk menyisipkan banyak jawaban (lebih efisien)
 	stmt, err := tx.Prepare(`
 		INSERT INTO user_assessment_answers (user_assessment_id, question_id, option_id)
 		VALUES ($1, $2, $3)`)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	defer stmt.Close()
 
-	// 3. Loop melalui setiap jawaban dan sisipkan ke database
 	for _, answer := range answers {
 		_, err := stmt.Exec(assessmentID, answer.QuestionID, answer.OptionID)
 		if err != nil {
-			return err
+			return uuid.Nil, err
 		}
 	}
 
-	// 4. Jika semua berhasil, commit transaksi
-	return tx.Commit()
+	return assessmentID, tx.Commit()
+}
+
+// CalculateScores menghitung skor untuk setiap jalur karier berdasarkan jawaban pengguna.
+func (r *AssessmentRepository) CalculateScores(assessmentID uuid.UUID) ([]models.CareerRecommendation, error) {
+	query := `
+		SELECT
+			cp.id,
+			cp.name,
+			cp.description,
+			COALESCE(SUM(ao.weight), 0)::INTEGER AS total_score
+		FROM
+			career_paths cp
+		LEFT JOIN
+			assessment_options ao ON cp.id = ao.career_path_id
+		LEFT JOIN
+			user_assessment_answers uaa ON ao.id = uaa.option_id
+		WHERE
+			uaa.user_assessment_id = $1
+		GROUP BY
+			cp.id, cp.name, cp.description
+		ORDER BY
+			total_score DESC;
+	`
+
+	rows, err := r.db.Query(query, assessmentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recommendations []models.CareerRecommendation
+	for rows.Next() {
+		var rec models.CareerRecommendation
+		if err := rows.Scan(&rec.CareerPathID, &rec.CareerPathName, &rec.CareerDescription, &rec.MatchScore); err != nil {
+			return nil, err
+		}
+		recommendations = append(recommendations, rec)
+	}
+
+	return recommendations, nil
 }

@@ -42,8 +42,9 @@ CREATE TABLE "assessment_questions" (
 CREATE TABLE "assessment_options" (
   "id" SERIAL PRIMARY KEY,
   "question_id" INTEGER REFERENCES "assessment_questions"("id") ON DELETE CASCADE,
+  "career_path_id" INTEGER REFERENCES "career_paths"("id") ON DELETE CASCADE, -- TAMBAHAN PENTING
   "option_text" TEXT NOT NULL,
-  "weight" INTEGER NOT NULL -- Bobot nilai untuk setiap jawaban, digunakan untuk kalkulasi
+  "weight" INTEGER NOT NULL -- Bobot nilai untuk setiap jawaban
 );
 
 -- Tabel untuk mencatat sesi asesmen yang diambil oleh pengguna

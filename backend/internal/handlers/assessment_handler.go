@@ -8,14 +8,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/zidankhainur2/codecareerix/backend/internal/models"
 	"github.com/zidankhainur2/codecareerix/backend/internal/repositories"
+	"github.com/zidankhainur2/codecareerix/backend/internal/services"
 )
 
 type AssessmentHandler struct {
-	repo *repositories.AssessmentRepository
+	repo    *repositories.AssessmentRepository
+	service *services.AssessmentService
 }
 
-func NewAssessmentHandler(repo *repositories.AssessmentRepository) *AssessmentHandler {
-	return &AssessmentHandler{repo: repo}
+func NewAssessmentHandler(repo *repositories.AssessmentRepository, service *services.AssessmentService) *AssessmentHandler {
+	return &AssessmentHandler{
+		repo:    repo,
+		service: service,
+	}
 }
 
 // GetAssessmentQuestions menangani permintaan untuk mendapatkan semua pertanyaan asesmen.
@@ -26,7 +31,6 @@ func (h *AssessmentHandler) GetAssessmentQuestions(c *gin.Context) {
 		return
 	}
 
-	// Jika tidak ada pertanyaan sama sekali
 	if len(questions) == 0 {
 		c.JSON(http.StatusOK, []models.AssessmentQuestion{})
 		return
@@ -35,16 +39,15 @@ func (h *AssessmentHandler) GetAssessmentQuestions(c *gin.Context) {
 	c.JSON(http.StatusOK, questions)
 }
 
+// SubmitAssessment menangani pengiriman jawaban dan mengembalikan rekomendasi.
 func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 	var input models.SubmitAssessmentInput
 
-	// 1. Bind & Validasi Input JSON
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 2. Ambil userID dari context yang di-set oleh middleware
 	userIDString, _ := c.Get("userID")
 	userID, err := uuid.Parse(userIDString.(string))
 	if err != nil {
@@ -52,15 +55,14 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 		return
 	}
 
-	// 3. Panggil repository untuk menyimpan jawaban
-	err = h.repo.SubmitAnswers(userID, input.Answers)
+	// Panggil service untuk memproses jawaban
+	recommendations, err := h.service.ProcessAssessmentSubmission(userID, input.Answers)
 	if err != nil {
-		// Log error di server untuk debugging
-		log.Printf("Gagal menyimpan jawaban asesmen untuk user %s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan jawaban Anda"})
+		log.Printf("Gagal memproses asesmen untuk user %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil asesmen Anda"})
 		return
 	}
 
-	// 4. Kirim respons sukses
-	c.JSON(http.StatusOK, gin.H{"message": "Asesmen berhasil diselesaikan!"})
+	// Kirim hasil rekomendasi sebagai respons
+	c.JSON(http.StatusOK, recommendations)
 }

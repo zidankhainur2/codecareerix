@@ -10,6 +10,7 @@ import (
 	"github.com/zidankhainur2/codecareerix/backend/internal/config"
 	"github.com/zidankhainur2/codecareerix/backend/internal/handlers"
 	"github.com/zidankhainur2/codecareerix/backend/internal/repositories"
+	"github.com/zidankhainur2/codecareerix/backend/internal/services" // Import services
 )
 
 type Server struct {
@@ -30,7 +31,7 @@ func New(db *sql.DB, cfg *config.Config) *Server {
 }
 
 func (s *Server) registerRoutes() {
-	// --- RUTE PUBLIK (Tidak butuh login) ---
+	// --- RUTE PUBLIK ---
 	s.router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Selamat datang di CodeCareerix API!"})
 	})
@@ -42,22 +43,23 @@ func (s *Server) registerRoutes() {
 	s.router.POST("/users/register", userHandler.Register)
 	s.router.POST("/users/login", userHandler.Login)
 
-	// --- RUTE TERPROTEKSI (Butuh login) ---
+	// --- RUTE TERPROTEKSI ---
 	authRoutes := s.router.Group("/")
 	authRoutes.Use(auth.AuthMiddleware(s.cfg.JWTSecret))
 	{
 		// Rute User terproteksi
 		authRoutes.GET("/users/profile", userHandler.GetProfile)
-		
+
 		// Rute Asesmen terproteksi
 		assessmentRepo := repositories.NewAssessmentRepository(s.db)
-		assessmentHandler := handlers.NewAssessmentHandler(assessmentRepo)
+		assessmentService := services.NewAssessmentService(assessmentRepo) // Buat service
+		assessmentHandler := handlers.NewAssessmentHandler(assessmentRepo, assessmentService) // Berikan repo dan service
+
 		authRoutes.GET("/assessments", assessmentHandler.GetAssessmentQuestions)
 		authRoutes.POST("/assessments/submit", assessmentHandler.SubmitAssessment)
 	}
 }
 
-// Run menjalankan server HTTP pada port yang diberikan.
 func (s *Server) Run(port string) error {
 	log.Printf("🚀 Server berjalan di http://localhost:%s\n", port)
 	return s.router.Run(":" + port)

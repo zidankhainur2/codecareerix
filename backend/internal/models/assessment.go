@@ -23,3 +23,10 @@ type UserAnswer struct {
 type SubmitAssessmentInput struct {
 	Answers []UserAnswer `json:"answers" binding:"required,dive"`
 }
+
+type CareerRecommendation struct {
+	CareerPathID      int    `json:"career_path_id"`
+	CareerPathName    string `json:"career_path_name"`
+	CareerDescription string `json:"career_description"`
+	MatchScore        int    `json:"match_score"`
+}
