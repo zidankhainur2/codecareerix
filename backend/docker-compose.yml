@@ -11,18 +11,18 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: ${DB_USER} # Mengambil dari file .env
-      DB_PASSWORD: ${DB_PASSWORD} # Mengambil dari file .env
-      DB_NAME: ${DB_NAME} # Mengambil dari file .env
-      JWT_SECRET: ${JWT_SECRET} # Mengambil dari file .env
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
 
   db:
     image: postgres:16-alpine
     container_name: codecareerix_db
     environment:
-      POSTGRES_USER: ${DB_USER} # Mengambil dari file .env
-      POSTGRES_PASSWORD: ${DB_PASSWORD} # Mengambil dari file .env
-      POSTGRES_DB: ${DB_NAME} # Mengambil dari file .env
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
